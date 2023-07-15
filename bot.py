@@ -20,7 +20,6 @@ logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s'
 
 print("Starting...")
 
-# Basics
 APP_ID = config("APP_ID", default=None, cast=int)
 API_HASH = config("API_HASH", default=None)
 SESSION = config("SESSION")
@@ -37,16 +36,22 @@ except Exception as ap:
     print(f"ERROR - {ap}")
     exit(1)
 
-@BotzHubUser.on(events.NewMessage(incoming=True, chats=FROM))
+@BotzHubUser.on(events.NewMessage(chats=FROM))
 async def sender_bH(event):
-    for i in TO:
+    for chat_id in TO:
         try:
-            await BotzHubUser.send_message(
-                i,
-                event.message
-            )
+            if event.document and (
+                event.document.mime_type == 'image/jpeg' or 
+                event.document.mime_type == 'image/png'
+            ):
+                max_file_size = 10 * 1024 * 1024  
+                if event.document.size <= max_file_size:
+                    media = await event.download_media()  
+                    await BotzHubUser.send_message(chat_id, file=media, force_document=True)
+                    
         except Exception as e:
             print(e)
 
 print("Bot has started.")
 BotzHubUser.run_until_disconnected()
+
